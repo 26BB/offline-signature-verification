@@ -15,7 +15,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Custom CSS styling
+# Custom styling
 st.markdown("""
 <style>
     .metric-card {
@@ -59,7 +59,27 @@ threshold = st.sidebar.slider(
     help="Pairwise Euclidean distance below this value is classified as GENUINE; above or equal is classified as FORGED / IMPOSTOR."
 )
 
+# Quick Demo Preset Selector
+st.sidebar.header("⚡ 1-Click Demo Presets")
+demo_options = {
+    "None (Manual Upload)": None,
+    "Genuine Match (Student 1 vs Student 1)": ("demo_samples/anchor_student1.png", "demo_samples/genuine_student1.png"),
+    "Skilled Forgery (Student 1 vs Forgery)": ("demo_samples/anchor_student1.png", "demo_samples/forged_student1.png"),
+    "Impostor / Random (Student 1 vs Student 2)": ("demo_samples/anchor_student1.png", "demo_samples/impostor_student2.png"),
+}
+selected_preset = st.sidebar.selectbox("Load Sample Pair:", list(demo_options.keys()))
+
 col1, col2 = st.columns(2)
+
+ref_image = None
+query_image = None
+
+# Check preset selection
+if demo_options[selected_preset] is not None:
+    ref_path, query_path = demo_options[selected_preset]
+    if os.path.exists(ref_path) and os.path.exists(query_path):
+        ref_image = Image.open(ref_path)
+        query_image = Image.open(query_path)
 
 with col1:
     st.subheader("1. Reference / Anchor Signature")
@@ -70,7 +90,8 @@ with col1:
     )
     if ref_file:
         ref_image = Image.open(ref_file)
-        st.image(ref_image, caption="Uploaded Anchor Signature", use_container_width=True)
+    if ref_image:
+        st.image(ref_image, caption="Anchor Signature", use_container_width=True)
 
 with col2:
     st.subheader("2. Query / Questioned Signature")
@@ -81,11 +102,12 @@ with col2:
     )
     if query_file:
         query_image = Image.open(query_file)
-        st.image(query_image, caption="Uploaded Test Signature", use_container_width=True)
+    if query_image:
+        st.image(query_image, caption="Test / Questioned Signature", use_container_width=True)
 
 st.divider()
 
-if ref_file and query_file:
+if ref_image and query_image:
     if st.button("🚀 Run Biometric Verification", type="primary", use_container_width=True):
         with st.spinner("Executing image preprocessing & deep feature extraction..."):
             # 1. Preprocess
@@ -128,4 +150,4 @@ if ref_file and query_file:
                     st.error("### ❌ REJECTED: FORGERY / MISMATCH")
                     st.write(f"Significant structural deviation detected. Distance **{dist:.4f}** exceeds threshold **{threshold:.2f}**.")
 else:
-    st.info("👆 Please upload both an Anchor signature and a Query signature to perform verification.")
+    st.info("👆 Please upload signatures or choose a **1-Click Demo Preset** from the sidebar.")
